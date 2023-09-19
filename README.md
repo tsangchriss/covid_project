@@ -3,7 +3,7 @@ This project can be viewed [here](https://tsangchriss.github.io/covid_project/) 
 Links to the data analyzed in this project:\
 [Used in "Total Positive Cases" and "Distinct Regions..."](https://data.sfgov.org/COVID-19/COVID-19-Testing-by-Geography-Over-Time/qhc5-mubk) 
 \
-[Used in "Booster Recipients](https://data.sfgov.org/COVID-19/COVID-19-Vaccinations-Given-to-SF-Residents-by-Dem/g8hh-rwgb)
+[Used in "Booster Recipients"](https://data.sfgov.org/COVID-19/COVID-19-Vaccinations-Given-to-SF-Residents-by-Dem/g8hh-rwgb)
 
 Objectives: Explore the effects of COVID-19 in the San Francisco County.
 1) How do Covid-19 cases compare in different districts?
