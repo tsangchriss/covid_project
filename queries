@@ -1,0 +1,234 @@
+-- 1. Provide a query for the total number of tests according to the year and month. 
+SELECT 
+	TO_CHAR(collection_date, 'YYYY-MM') AS date, 
+	SUM(tests) AS total_tests 
+FROM 
+	test
+GROUP BY 
+	date
+ORDER BY 
+	date ASC;
+
+-- 2. Provide a query that shows the year-month with the largest number of reported positive COVID cases.
+WITH cte AS(
+	SELECT 
+		TO_CHAR(collection_date, 'YYYY-MM') AS date, 
+		SUM(pos) AS positive_case, 
+		DENSE_RANK() OVER(ORDER BY SUM(pos) DESC) AS rank 
+	FROM 
+		test
+	GROUP BY 
+		date
+	ORDER BY 
+		positive_case DESC
+)
+
+SELECT date, positive_case FROM cte
+WHERE rank = 1;
+
+-- 3. Provide a query of the positive to negative ratio according to the year.
+SELECT 
+	TO_CHAR(collection_date, 'YYYY') AS year, 
+	ROUND(SUM(neg) / SUM(pos)::numeric, 2) AS negative_to_positive_cases_ratio 
+FROM 
+	test
+GROUP BY 
+	year
+ORDER BY 
+	negative_to_positive_cases_ratio DESC;
+
+-- 4. Provide a query of the total number of indeterminate cases each year.
+SELECT 
+	EXTRACT(year FROM collection_date) AS year, 
+	SUM(indeterminate) AS total_indeterminate_cases 
+FROM 
+	test
+GROUP BY 
+	year;
+
+-- 5. Provide a query of the total number of cases according to the characteristics.
+SELECT characteristic_type, 
+	MAX(cumulative_cases) AS total_cases 
+FROM 
+	characteristic
+GROUP BY 
+	characteristic_type;
+
+-- 6. Provide a query of the total number of cases according to each gender.
+SELECT 
+	characteristic_group AS gender, 
+	MAX(cumulative_cases) AS cases 
+FROM 
+	characteristic 
+WHERE 
+	characteristic_type = 'Gender'
+GROUP BY 
+	gender;
+
+-- 7. Provice a query of the total number of cases according to each age group.
+SELECT 
+	characteristic_group AS age_group, 
+	MAX(cumulative_cases) AS cases 
+FROM 
+	characteristic 
+WHERE 
+	characteristic_type = 'Age Group'
+GROUP BY 
+	age_group
+ORDER BY 
+	cases DESC;
+	
+-- 8. Provide a query of the vaccination rates across different age groups and provider types. 
+SELECT 
+	age_group.age, 
+	vac.provider, 
+	ROUND((vac.total_recipients / vac.subgroup_population::numeric), 6) AS ratio 
+FROM 
+	(SELECT 
+	 	administering_provider_type AS provider, 
+	 	demographic_subgroup_sort_order AS subgroup, 
+	 	subgroup_population, total_recipients 
+	 FROM 
+	 	vaccine 
+	 WHERE 
+	 	demographic_group = 'Age Group'
+) AS vac
+LEFT JOIN 
+	(SELECT DISTINCT 
+	 	characteristic_group_sort_order AS subgroup, 
+	 	characteristic_group AS age 
+	 FROM 
+	 	characteristic
+	 WHERE 
+	 	characteristic_type = 'Age Group'
+) AS age_group
+ON 
+	vac.subgroup = age_group.subgroup;
+
+-- 9. Provide a query of the total number of monovalent and bivalent boosters administered according to the year (bivalent booster was authorized in fall 2022).
+SELECT 
+	TO_CHAR(date_administered, 'YYYY') AS year,  
+	MAX(cumulative_booster_doses) AS mono_boost, 
+	MAX(cumulative_2nd_booster_recipients) AS second_mono_boost, 
+	MAX(cumulative_bivalent_booster_doses) AS bi_boost
+FROM 
+	vaccine_date
+WHERE 
+	demographic_group = 'Race/Ethnicity'
+GROUP BY 
+	year
+ORDER BY 
+	year;
+select demographic_group, max(cumulative_booster_doses) from vaccine_date
+group by demographic_group;
+
+-- 10. Provide a query that shows the total number of monvalent booster doses received by Asians, over the years. 
+SELECT 
+	TO_CHAR(vd.date_administered, 'YYYY') AS year, 
+	MAX(vd.cumulative_booster_doses) AS monovalent_booster_dose 
+FROM 
+	vaccine_date AS vd
+LEFT JOIN (
+	SELECT DISTINCT
+		characteristic_group_sort_order, 
+		characteristic_group 
+	FROM 
+		characteristic
+	WHERE 
+		characteristic_type = 'Race/Ethnicity'
+) AS race_groups
+ON 
+	vd.demographic_subgroup_sort_order = race_groups.characteristic_group_sort_order
+WHERE 
+	vd.demographic_group = 'Race/Ethnicity' AND vd.demographic_subgroup_sort_order = 2
+GROUP BY 
+	year
+ORDER BY 
+	year;
+select * from vaccine_date
+-- 11. Provide a query of the total number of monovalent (first dose) and bivalent doses received by individuals according
+--	   to their ethnicity.
+
+SELECT 
+    race_groups.characteristic_group AS race,
+    MAX(vd.cumulative_booster_doses) AS monovalent_booster_dose,
+	MAX(vd.cumulative_2nd_booster_recipients) AS second_monovalent_booster_dose,
+    MAX(vd.cumulative_bivalent_booster_doses) AS bivalent_booster_dose
+FROM 
+    vaccine_date AS vd
+LEFT JOIN (					
+    SELECT DISTINCT
+        characteristic_group,
+        characteristic_group_sort_order
+    FROM 
+        characteristic
+    WHERE 
+        characteristic_type = 'Race/Ethnicity'
+    ORDER BY 
+        characteristic_group_sort_order
+) AS race_groups
+ON 
+    vd.demographic_subgroup_sort_order = race_groups.characteristic_group_sort_order 
+WHERE 
+	vd.demographic_group = 'Race/Ethnicity'
+GROUP BY 
+    race_groups.characteristic_group;
+
+-- 12. Provide a query of the total number of confirmed cases in each neighborhood of San Francisco.
+SELECT 
+	id AS neighborhood,
+	MAX(cumulative_confirmed_cases) AS positive_cases
+FROM 
+	geography
+WHERE 
+	area_type = 'Analysis Neighborhood'
+GROUP BY
+	neighborhood
+HAVING 
+	MAX(cumulative_confirmed_cases) IS NOT NULL
+ORDER BY 
+	positive_cases DESC;
+	
+-- 14. Provide a query of the ratio of positive cases in each neighborhood of SF.
+SELECT 
+	id AS neighborhood,
+	ROUND(MAX(cumulative_confirmed_cases) / MAX(acs_population)::numeric, 3) * 100 AS positive_cases_ratio_percent
+FROM 
+	geography
+WHERE 
+	area_type = 'Analysis Neighborhood'
+GROUP BY
+	neighborhood
+HAVING 
+	MAX(cumulative_confirmed_cases) IS NOT NULL
+ORDER BY 
+	positive_cases_ratio_percent DESC;
+
+-- 15. Provide a query of the total number of confirmed cases in each neighborhood and quarters of the years. 
+SELECT 
+	id AS neighborhood,
+	TO_CHAR(specimen_collection_date, 'YYYY-MM') AS quarter_date, 
+	MAX(cumulative_confirmed_cases) AS total_confirmed_cases
+FROM 
+	geography 
+WHERE 
+	EXTRACT(month FROM specimen_collection_date) IN (1, 4, 7, 10) 
+	AND 
+	area_type = 'Analysis Neighborhood'
+GROUP BY 
+	quarter_date, id 
+ORDER BY 
+	neighborhood;
+
+-- FOR CREATING TABLEAU VISUAL ONLY -- 
+SELECT DISTINCT 
+	geography.id, 
+	zipcode.zipcode 
+FROM 
+	zipcode
+RIGHT JOIN 
+	geography
+ON 
+	zipcode.id = geography.id
+WHERE 
+	area_type = 'Analysis Neighborhood';
