@@ -9,6 +9,8 @@ Objectives: Explore the effects of COVID-19 in the San Francisco County.
 2) What might be a cause of different Covid-19 cases, despite having similar population sizes?
 3) What do vaccination rates look like among different ethnic groups? 
 
+
+All of the work was done using PgAdmin 4 (PostgreSQL), Tableau, and R (bookdown).
 \
 \
 *This repo was initially generated from a bookdown template available here: https://github.com/jtr13/bookdown-template.*
